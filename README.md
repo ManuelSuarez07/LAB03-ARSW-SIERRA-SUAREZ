@@ -4,7 +4,9 @@
 
 
 #### Ejercicio – programación concurrente, condiciones de carrera y sincronización de hilos. EJERCICIO INDIVIDUAL O EN PAREJAS.
-
+Integrantes:
+1) Yeltzyn Sierra.
+2) Manuel Suarez.
 ##### Parte I – Antes de terminar la clase.
 
 Control de hilos con wait/notify. Productor/consumidor.
