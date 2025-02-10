@@ -1,0 +1,17 @@
+# RESPUESTAS.txt
+
+1. **Problema observado**:
+   Cuando muchos hilos acceden simultáneamente a la lista compartida de inmortales, ocurre una condición de carrera. Por ejemplo:
+   - Un hilo intenta acceder a un inmortal que ya fue eliminado por otro hilo.
+   - La lista de inmortales puede quedar en un estado inconsistente debido a modificaciones concurrentes.
+
+2. **Condición de carrera explicada**:
+   La condición de carrera ocurre porque múltiples hilos acceden y modifican la lista de inmortales sin ninguna sincronización. Esto genera errores al intentar luchar con inmortales ya eliminados.
+
+3. **Solución sin sincronización explícita**:
+   - En lugar de modificar la lista compartida directamente, cada hilo crea una copia local de inmortales vivos usando `stream().filter()`.
+   - Esto evita modificar la lista global mientras otros hilos están accediendo a ella.
+   - Las peleas se sincronizan a nivel del oponente, minimizando el tiempo de bloqueo.
+
+4. **Conclusión**:
+   La solución evita la condición de carrera sin usar sincronización explícita en la lista completa, lo que mejora el rendimiento de la simulación. Sin embargo, el acceso concurrente aún puede generar inconsistencias menores si no se maneja cuidadosamente.
