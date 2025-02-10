@@ -5,80 +5,109 @@ import java.util.Random;
 
 public class Immortal extends Thread {
 
-    private ImmortalUpdateReportCallback updateCallback=null;
-    
+    private ImmortalUpdateReportCallback updateCallback = null;
+
     private int health;
-    
-    private int defaultDamageValue;
-
+    private final int defaultDamageValue;
     private final List<Immortal> immortalsPopulation;
-
     private final String name;
-
     private final Random r = new Random(System.currentTimeMillis());
+    private boolean pause = false;
+    public boolean isDead = false;
 
-
-    public Immortal(String name, List<Immortal> immortalsPopulation, int health, int defaultDamageValue, ImmortalUpdateReportCallback ucb) {
+    public Immortal(String name, List<Immortal> immortalsPopulation, int health, int defaultDamageValue,
+                    ImmortalUpdateReportCallback ucb) {
         super(name);
-        this.updateCallback=ucb;
+        this.updateCallback = ucb;
         this.name = name;
         this.immortalsPopulation = immortalsPopulation;
         this.health = health;
-        this.defaultDamageValue=defaultDamageValue;
+        this.defaultDamageValue = defaultDamageValue;
     }
 
     public void run() {
-
         while (true) {
-            Immortal im;
 
-            int myIndex = immortalsPopulation.indexOf(this);
-
-            int nextFighterIndex = r.nextInt(immortalsPopulation.size());
-
-            //avoid self-fight
-            if (nextFighterIndex == myIndex) {
-                nextFighterIndex = ((nextFighterIndex + 1) % immortalsPopulation.size());
+            synchronized (this) {
+                while (pause) {
+                    try {
+                        wait();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
             }
 
-            im = immortalsPopulation.get(nextFighterIndex);
+            if (isDead) {
+                return; // Si está muerto, el hilo termina
+            }
 
-            this.fight(im);
+            Immortal opponent;
+            synchronized (immortalsPopulation) {
+                int myIndex = immortalsPopulation.indexOf(this);
+                int nextFighterIndex = r.nextInt(immortalsPopulation.size());
+
+                // Evitar autoataque
+                if (nextFighterIndex == myIndex) {
+                    nextFighterIndex = (nextFighterIndex + 1) % immortalsPopulation.size();
+                }
+
+                opponent = immortalsPopulation.get(nextFighterIndex);
+            }
+
+            fight(opponent);
 
             try {
                 Thread.sleep(1);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-
         }
-
     }
 
-    public void fight(Immortal i2) {
+    public void fight(Immortal opponent) {
+        synchronized (immortalsPopulation) {
+            if (!opponent.isDead && opponent.getHealth() > 0) {
+                opponent.changeHealth(opponent.getHealth() - defaultDamageValue);
+                this.changeHealth(this.getHealth() + defaultDamageValue);
+                updateCallback.processReport("Fight: " + this + " vs " + opponent + "\n");
 
-        if (i2.getHealth() > 0) {
-            i2.changeHealth(i2.getHealth() - defaultDamageValue);
-            this.health += defaultDamageValue;
-            updateCallback.processReport("Fight: " + this + " vs " + i2+"\n");
-        } else {
-            updateCallback.processReport(this + " says:" + i2 + " is already dead!\n");
+                if (opponent.getHealth() <= 0) {
+                    opponent.markAsDead();
+                    updateCallback.processReport(opponent + " has been defeated by " + this + "\n");
+                }
+            }
         }
-
     }
 
-    public void changeHealth(int v) {
-        health = v;
+    public synchronized void changeHealth(int value) {
+        health = value;
     }
 
-    public int getHealth() {
+    public synchronized int getHealth() {
         return health;
+    }
+
+    public synchronized void markAsDead() {
+        isDead = true;
+        health = 0;
     }
 
     @Override
     public String toString() {
-
         return name + "[" + health + "]";
     }
 
+    public synchronized void pause() {
+        this.pause = true;
+    }
+
+    public synchronized void resumeThread() {
+        this.pause = false;
+        notify();
+    }
+
+    public void stopThread() {
+        boolean running = false; // Cambia el estado para detener el ciclo
+    }    
 }
